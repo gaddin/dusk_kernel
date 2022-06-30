@@ -45,7 +45,7 @@ stage0:
 
 protected:
 
-    call    0x7e00                       
+    call    st
     mov     ax, 3
     jmp     hang
 
@@ -107,7 +107,6 @@ k_code_seg                  equ kernel_code - gdt_start
 k_data_seg                  equ kernel_data - gdt_start
 
 ; ==global descriptor table==
-dq 0xefbeadde
 gdt_start:
 
 null:
@@ -115,31 +114,22 @@ null:
     dq 0
 
 kernel_code:     
-    
-     dw 0xffff   ; limit (bits 0 - 15)
-     dw 0        ; base (bits 0 - 15)
-     db 0        ; base (bits 16 - 23)
-     ; Type attributes
-;     db ( A | R | X | SET | RING_0 | PRESENT )
-;     ; flags and rest of the limit (bits 16 - 20)
-;     db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf 
- db 0x9a		
-	db 0xcf
- db 0        ; base (bits 24 - 31)
+     
+    dw 0xffff
+    dw 0x0000
+    db 0
+    db ()
+    dw 0xcf00
+
 kernel_data:
-   dw 0xffff   ; limit (bits 0 - 15)
-   dw 0        ; base (bits 0 - 15)      
-   db 0        ; base (bits 16 - 23)
-   ; Type attributes
-   ;db ( A | W | RO | SET | RING_0 | PRESENT )
-   ; ; flags and rest of the limit (bits 16 - 20)
-   ;db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf  
-   db 0x92		
-	db 0xcf
-   db 0        ; base (bits 24 - 31)
+
+    dw 0xffff
+    dw 000000
+    db 0
+    db ()
+    dw 0xcf00 
 
 gdt_end:
-dq 0xefbeadde
 ;===========================================================;
 ;                       disk managment                      ;                   
 ;===========================================================;
