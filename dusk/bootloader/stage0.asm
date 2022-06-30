@@ -19,22 +19,19 @@ stage0:
 
     call    clear_gprs              ; clear all general purpose registers
 
-; although the int 13h function 2 assumes a floppy drive,
-; the disk controller automatically translates the CHS to the correct address
-; we will keep using it as if it were an actual
-; floppy drive for simplicity reasons
+    ; although the int 13h function 2 assumes a floppy drive,
+    ; the disk controller automatically translates the CHS to the correct address
+    ; we will keep using it as if it were an actual
+    ; floppy drive for simplicity reasons
 
-    mov     ah, READ_SECTORS        ; we want to read sectors off disk (ah = 2)
-    mov     al, 0x20                 ; number of sectors to read
-          ; select cylinder 0 from disk
-    mov     cx, 2
+    mov     ah, READ_SECTORS
+    mov     al, 0x2
+    mov     ch, CYLINDER_0
+    mov     cl, SECTOR_2
     mov     dl, [drive_number]
-    mov     bx, 0x7e00            ; starting from stage1 (at byte 513)
-    
+    mov     dh, HEAD_0
     int     DISK_SERVICE_13h
     jc      disk_err                ; carry flag is set upon error
-    
-    
     cli                             ; we stop bullying the processor
     mov     eax, cr0                ; get the current cr0 value
     or      eax, PM_BIT             ; set the protected mode bit
@@ -42,17 +39,20 @@ stage0:
 
     lgdt    [gdt_address]           ; load the gdtr with the descriptor address
     
-    jmp     DWORD k_code_seg:protected  ; jump to sector 2 (CS:IP, CS = 8, IP = stage1)
-    
-protected:
-    mov     ax, k_data_seg
-    mov     ds, ax
+    jmp     dword k_code_seg:protected  ; jump to sector 2 (CS:IP, CS = 8, IP = stage1)
 
-    call    stage1                   ; stage1.c at byte 513
+[bits 32]
+
+protected:
+
+    call    0x7e00                       
+    mov     ax, 3
     jmp     hang
 
    
 ; ==clear all gprs==
+
+[bits 16]
 
 clear_gprs:
     
@@ -81,7 +81,7 @@ PM_BIT      equ 1
 
 A           equ 0           ; accessed bit 
 W           equ 1 << 1      ; write bit
-R           equ ~(W) << 2   ; read bit
+R           equ ~(W) << 1   ; read bit
 X           equ 1 << 3      ; execute bit
 RO          equ ~(X) << 3   ; read-only bit
 SET         equ 1 << 4      ; set bit
@@ -107,7 +107,7 @@ k_code_seg                  equ kernel_code - gdt_start
 k_data_seg                  equ kernel_data - gdt_start
 
 ; ==global descriptor table==
-
+dq 0xefbeadde
 gdt_start:
 
 null:
@@ -116,28 +116,30 @@ null:
 
 kernel_code:     
     
-    dw 0xffff   ; limit (bits 0 - 15)
-    dw 0        ; base (bits 0 - 15)
-    db 0        ; base (bits 16 - 23)
-    ; Type attributes
-    db ( A | R | X | SET | RING_0 | PRESENT )
-    ; flags and rest of the limit (bits 16 - 20)
-    db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf 
-    db 0        ; base (bits 24 - 31)
-
+     dw 0xffff   ; limit (bits 0 - 15)
+     dw 0        ; base (bits 0 - 15)
+     db 0        ; base (bits 16 - 23)
+     ; Type attributes
+;     db ( A | R | X | SET | RING_0 | PRESENT )
+;     ; flags and rest of the limit (bits 16 - 20)
+;     db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf 
+ db 0x9a		
+	db 0xcf
+ db 0        ; base (bits 24 - 31)
 kernel_data:
-   
-    dw 0xffff   ; limit (bits 0 - 15)
-    dw 0        ; base (bits 0 - 15)      
-    db 0        ; base (bits 16 - 23)
-    ; Type attributes
-    db ( A | W | RO | SET | RING_0 | PRESENT )
-    ; flags and rest of the limit (bits 16 - 20)
-    db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf  
-    db 0        ; base (bits 24 - 31)
+   dw 0xffff   ; limit (bits 0 - 15)
+   dw 0        ; base (bits 0 - 15)      
+   db 0        ; base (bits 16 - 23)
+   ; Type attributes
+   ;db ( A | W | RO | SET | RING_0 | PRESENT )
+   ; ; flags and rest of the limit (bits 16 - 20)
+   ;db ( PAGE_GRAN | _32_BIT_PM ) << 4 | 0xf  
+   db 0x92		
+	db 0xcf
+   db 0        ; base (bits 24 - 31)
 
 gdt_end:
-
+dq 0xefbeadde
 ;===========================================================;
 ;                       disk managment                      ;                   
 ;===========================================================;
@@ -154,7 +156,6 @@ drive_number:
 
 disk_err:
     
-    mov ax, DISK_ERR
     jmp hang
 ;==========================================================;
 ;               BIOS routines and functions                ;

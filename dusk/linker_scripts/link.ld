@@ -2,7 +2,7 @@ ENTRY(stage0)
 OUTPUT_FORMAT("binary")
 SECTIONS
 {
-
+  . = 0x7c00;
   .boot : {
     *(.boot)
   
@@ -11,14 +11,17 @@ SECTIONS
  }
  
   .text : { 
-
+    
     
   *(.text) 
 
     *(.rodata)
-    }
+         
+    FILL(0xaa);
+}
   .data : { 
     *(.data)
-     }
+    }
+    .= 0xffff;
 }
     
