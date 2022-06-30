@@ -27,7 +27,7 @@ stage0:
     mov     ah, READ_SECTORS        ; we want to read sectors off disk (ah = 2)
     mov     al, 0x20                 ; number of sectors to read
           ; select cylinder 0 from disk
-    mov cx, 2
+    mov     cx, 2
     mov     dl, [drive_number]
     mov     bx, 0x7e00            ; starting from stage1 (at byte 513)
     
@@ -48,8 +48,7 @@ protected:
     mov     ax, k_data_seg
     mov     ds, ax
 
-    call   stage1                   ; stage1.c at byte 513
-    mov ax, 3
+    call    stage1                   ; stage1.c at byte 513
     jmp     hang
 
    
