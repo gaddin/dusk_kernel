@@ -16,6 +16,11 @@ SECTIONS
         SHORT(0xaa55); /* MBR signature */
     }
  
+    .data : 
+    { 
+        *(.data)
+    }
+
     .text :
     { 
     
@@ -23,11 +28,5 @@ SECTIONS
 
         *(.rodata)
          
-        FILL(0xaa);
-    }
-
-    .data : 
-    { 
-        *(.data)
     }
 }

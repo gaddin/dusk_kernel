@@ -27,7 +27,11 @@ DISK_DIR=$(OUTPUT_DIR)/disk
 # script
 
 all: kernel.iso
-	
+
+setup:
+	mkdir $(BUILD_DIR)
+	mkdir $(OUTPUT_DIR)
+
 run: kernel.iso
 	qemu-system-$(QEMU_ARCH) $(QEMU_SETTINGS) $^
 
@@ -35,12 +39,12 @@ kernel.iso: kernel.elf
 	dd if=/dev/zero of=$@ bs=512 count=1440
 	dd if=$(BUILD_DIR)/$^ conv=notrunc bs=512 count=1440
 
-kernel.elf: stage0.o stage1.o
+kernel.elf: $(OUTPUT_DIR)/stage0.o $(OUTPUT_DIR)/stage1.o
 	$(LD86) $(STAGE_1_LD_FLAGS) $^ -o $@
 
-stage0.o: $(BOOT_SRC)
-	$(ASM) $(STAGE_0_ASM_FLAGS) $^
+$(OUTPUT_DIR)/stage0.o: $(BOOT_SRC)
+	$(ASM) $(STAGE_0_ASM_FLAGS) $^ -o $@
 
-stage1.o: $(INIT_SRC)
-	$(CC86) $(STAGE_1_C_FLAGS) $^ -c $@
+$(OUTPUT_DIR)/stage1.o: $(INIT_SRC)
+	$(CC86) $(STAGE_1_C_FLAGS) -c $^ -o $@
 	

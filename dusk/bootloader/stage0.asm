@@ -8,7 +8,6 @@
 ;===========================================================;
 
 
-
 [bits 16]
 
 section .boot
@@ -25,27 +24,29 @@ stage0:
     ; floppy drive for simplicity reasons
 
     mov     ah, READ_SECTORS
-    mov     al, 0x2
-    mov     ch, CYLINDER_0
+    mov     al, 0x7f				; load 127 sectors
+    mov     ch, CYLINDER_0			
     mov     cl, SECTOR_2
     mov     dl, [drive_number]
     mov     dh, HEAD_0
     int     DISK_SERVICE_13h
     jc      disk_err                ; carry flag is set upon error
-    cli                             ; we stop bullying the processor
+    
+	
+	cli                             ; we stop bullying the processor
     mov     eax, cr0                ; get the current cr0 value
     or      eax, PM_BIT             ; set the protected mode bit
     mov     cr0, eax                ; set cr0 to the new value
 
     lgdt    [gdt_address]           ; load the gdtr with the descriptor address
     
-    jmp     dword k_code_seg:protected  ; jump to sector 2 (CS:IP, CS = 8, IP = stage1)
+    jmp    dword k_code_seg:protected  ; jump to sector 2 (CS:IP, CS = 8, IP = stage1)
 
 [bits 32]
 
 protected:
-
-    call    st
+	
+    jmp $
     mov     ax, 3
     jmp     hang
 
@@ -94,12 +95,6 @@ RING_1      equ 1 << 5
 RING_2      equ 2 << 5      
 RING_3      equ 3 << 5      ; User space
 
-; ==gdt flags==
-
-PAGE_GRAN   equ 1 << 3
-BYTE_GRAN   equ ~(PAGE_GRAN)
-_32_BIT_PM  equ 1 << 2
-
 ; ==gdt and descriptor addresses==
 
 gdt_address                 equ (gdt_end - gdt_start) - 1
@@ -107,29 +102,34 @@ k_code_seg                  equ kernel_code - gdt_start
 k_data_seg                  equ kernel_data - gdt_start
 
 ; ==global descriptor table==
+dq 0xefbeadde
 gdt_start:
 
 null:
-    
-    dq 0
+; dq    0
+	dw 0x0000
+	dw 0x0000
 
 kernel_code:     
      
     dw 0xffff
     dw 0x0000
-    db 0
-    db ()
-    dw 0xcf00
+    db 0x00
+    db ( A | R | X | SET | RING_0 | PRESENT ) ; 0x9a
+    db 0xcf
+	db 0x00
 
 kernel_data:
 
     dw 0xffff
-    dw 000000
-    db 0
-    db ()
-    dw 0xcf00 
+    dw 0x0000
+    db 0x00
+    db ( A | W | RO | SET | RING_0 | PRESENT ) ; 0x92
+    db 0xcf
+	db 0x00 
 
 gdt_end:
+dq 0xefbeadde
 ;===========================================================;
 ;                       disk managment                      ;                   
 ;===========================================================;
@@ -152,12 +152,6 @@ disk_err:
 ;==========================================================;
 DISK_SERVICE_13h            equ 0x13
 READ_SECTORS                equ 2
-
-;==========================================================;
-;                    ERROR CODES                           ;
-;==========================================================;
-
-DISK_ERR                    equ 0xaa
 
 ;==========================================================;
 ;                    hang the cpu                          ;
